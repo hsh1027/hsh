@@ -1,9 +1,8 @@
 #coding:utf-8
 """
-综合项目:世行历史数据基本分类及其可视化
+综合项目:世界银行历史数据基本分类及其可视化
 作者：黄石红
-
-
+日期:2020.06.09
 """
 
 import csv
@@ -11,9 +10,6 @@ import math
 import pygal
 import pygal_maps_world  #导入需要使用的库
 
-#from pyecharts import Geo
-
-#from pyecharts import Map
 
 def read_csv_as_nested_dict(filename, keyfield, separator, quote): #读取原始csv文件的数据，格式为嵌套字典
     """
@@ -22,12 +18,12 @@ def read_csv_as_nested_dict(filename, keyfield, separator, quote): #读取原始
       keyfield:键名
       separator:分隔符
       quote:引用符
-      
 
     输出:
       读取csv文件数据，返回嵌套字典格式，其中外层字典的键对应参数keyfiled，内层字典对应每行在各列所对应的具体值
     """
     result={}
+
     with open(filename,newline="")as csvfile:
         csvreader=csv.DictReader(csvfile,delimiter=separator,quotechar=quote)
         for row in csvreader:
@@ -35,91 +31,122 @@ def read_csv_as_nested_dict(filename, keyfield, separator, quote): #读取原始
             result[rowid]=row
 
     return result
-    
+
 pygal_countries = pygal.maps.world.COUNTRIES #读取pygal.maps.world中国家代码信息（为字典格式），其中键为pygal中各国代码，值为对应的具体国名(建议将其显示在屏幕上了解具体格式和数据内容）
- 
+
 def reconcile_countries_by_name(plot_countries, gdp_countries): #返回在世行有GDP数据的绘图库国家代码字典，以及没有世行GDP数据的国家代码集合
     """
-    
     输入参数:
     plot_countries: 绘图库国家代码数据，字典格式，其中键为绘图库国家代码，值为对应的具体国名
     gdp_countries:世行各国数据，嵌套字典格式，其中外部字典的键为世行国家代码，值为该国在世行文件中的行数据（字典格式)
-    
+
     输出：
     返回元组格式，包括一个字典和一个集合。其中字典内容为在世行有GDP数据的绘图库国家信息（键为绘图库各国家代码，值为对应的具体国名),
     集合内容为在世行无GDP数据的绘图库国家代码
     """
-    s=set()   #集合
-    a={}  #字典
     
-    if gdp_countries:   #如果GDP数据没有
-     s.add(plot)   #添加国家代码到集合
-     del result[rowid]   #从之前的大字典里面删除
-    else:
-     b[plot]=countries    #添加进字典b
+    a_1 = {}
+    b_1 = set()
 
-    tu1={a,s}    #元组
-    return tu1  #返回元祖
-    
-        
-  #  pass # 编码，结束后将pass删除
-    # 不要忘记返回结果
-    
+    for pygal_country_code in plot_countries :							
+        if plot_countries[pygal_country_code] in gdp_countries : 
+            a_1[pygal_country_code] = plot_countries[pygal_country_code]   # 字典内容为在世行数据里的绘图库国家（键为绘图库各国家代码，值为对应的具体国名)
 
+        else :
+            b_1.add(pygal_country_code)   #  集合内容为不在世行数据的绘图库国家代码
+
+    c_1 = (a_1,b_1)
+
+    return c_1
 
 def build_map_dict_by_name(gdpinfo, plot_countries, year):
     """
     输入参数:
-    gdpinfo: 
+    gdpinfo: gdp信息字典
     plot_countries: 绘图库国家代码数据，字典格式，其中键为绘图库国家代码，值为对应的具体国名
     year: 具体年份值
-    
+
     输出：
     输出包含一个字典和二个集合的元组数据。其中字典数据为绘图库各国家代码及对应的在某具体年份GDP产值（键为绘图库中各国家代码，值为在具体年份（由year参数确定）所对应的世行GDP数据值。为
     后续显示方便，GDP结果需转换为以10为基数的对数格式，如GDP原始值为2500，则应为log2500，ps:利用math.log()完成)
     2个集合一个为在世行GDP数据中完全没有记录的绘图库国家代码，另一个集合为只是没有某特定年（由year参数确定）世行GDP数据的绘图库国家代码
+    """
+    countries_year_gdp = {}
+    x = set()
+    y = dict()
+    
+    years_gdp = []
+    
+    for plot_countries_code in plot_countries :
+        for isp_country_code in gdpinfo :
+            
+            if gdpinfo[isp_country_code]["Country Name"] == plot_countries[plot_countries_code] : # 判断绘图库里的国家在不在世界银行数据里
+                
+                gdp_number = ''
+                country_imformations = []
+                
+                for country_imformation in gdpinfo[isp_country_code] :
+                    country_imformations.append(country_imformation)
+                
+                for year_1 in country_imformations[4:-1] :
+                    gdp_number += gdpinfo[isp_country_code][year_1]
+                    
+                if gdp_number == '' :
+                    x.add(plot_countries_code)  # 把该国家归为不在世界银行数据里
+                    
+                else :
+                    if gdpinfo[isp_country_code][year] != '' :
+                        
+                        gdp_num = math.log10(float((gdpinfo[isp_country_code][year])))
+                        countries_year_gdp[plot_countries_code] = gdp_num    # 把该国家分类为该年有数据并以字典形式保存(键为绘图库中各国家代码，值为在具体年份(
+                                                                                                        #  由year参数确定)所对应的世行GDP数据值)
+                    else :
+                        y[plot_countries_code] = '该年暂无数据'  # 把该国家分类为该年暂无数据
+                        
+                    # 当该绘图库里的国家在世界银行数据里时，判断该年有无数据，并进行分类（当其每一年的数据都没有时，把该国家归为不在世界银行数据里）
+                    
+                continue
+    
+    isp_countries = []
+    for isp_country_code in gdpinfo :
+        isp_countries.append(gdpinfo[isp_country_code]["Country Name"])
 
-   """
-    year_GDP=math.log(gdpinfo)   #对数格式
-    b={"plot":"year_GDP"}       #储存
-    m=set()               #完全没有记录用的集合
-    n=set()               #有部分记录用的集合
-         
+    in_countries, not_in_countries = reconcile_countries_by_name(plot_countries, isp_countries)
+    
+    for countries in not_in_countries :
+        x.add(countries)
+    # 绘图库里不在世界银行数据里的国家
+    
+    z = (countries_year_gdp,x,y)  #元组
+    
+    return z    #返回元组
     
 
-    pass # 编码，结束后将pass删除
-    # 不要忘记返回结果
-
-
-
-def render_world_map(gdpinfo, plot_countries, year, map_file): #将具体某年世界各国的GDP数据(包括缺少GDP数据以及只是在该年缺少GDP数据的国家)以地图形式可视化
+def render_world_map(gdpinfo, plot_countries, year, map_file): 
     """
     Inputs:
-      
+
       gdpinfo:gdp信息字典
       plot_countires:绘图库国家代码数据，字典格式，其中键为绘图库国家代码，值为对应的具体国名
       year:具体年份数据，以字符串格式程序，如"1970"
       map_file:输出的图片文件名
-    
+
     目标：将指定某年的世界各国GDP数据在世界地图上显示，并将结果输出为具体的的图片文件
     提示：本函数可视化需要利用pygal.maps.world.World()方法
     """
-    
-    wm=pygal.maps.world.World()                         #可视化
-    wm.force_uri_protocol = 'http'                
-    wm.title =year+"世界GDP地图"                    #标题
-    for code,name in b.items():               #遍历字典b
-        wm.add(name,code)                       #把东西转移出来
-    wm.add('year',{'plot':'GDP'})               #添加标签和字典
-    wm.render_to_file('isp_gdp_world_name_1970.svg')             #放到这个文件
-    
-    
-    
-    
-    pass #编码，结束后将pass删除
-    #不要忘记返回结果
 
+    A_countries,B_countries,C_countries = build_map_dict_by_name(gdpinfo, plot_countries, year)   # 导入清理好的数据，方便绘制到世界地图上
 
+    worldmap_chart = pygal.maps.world.World()
+    worldmap_chart = pygal.maps.world.World()
+    worldmap_chart.title = '世界银行%s年国家GDP数据'%(year)
+    worldmap_chart.add('该年在绘图库及世行有数据的国家及其GDP数据', A_countries)
+    worldmap_chart.add('在绘图库中没有数据的国家',B_countries)
+    worldmap_chart.add('该年在世行没有GDP数据的国家',C_countries)
+    worldmap_chart.render()
+
+    worldmap_chart.render_to_file(map_file)
+ 
 def test_render_world_map(year):  #测试函数
     """
     对各功能函数进行测试
@@ -133,23 +160,23 @@ def test_render_world_map(year):  #测试函数
         "country_name": "Country Name",
         "country_code": "Country Code"
     } #定义数据字典
-  
     
-   
-    pygal_countries = pygal.maps.world.COUNTRIES   # 获得绘图库pygal国家代码字典
+    gdp_csv = read_csv_as_nested_dict(gdpinfo['gdpfile'], gdpinfo['country_code'], gdpinfo['separator'], gdpinfo['quote'])
 
-    # 测试时可以1970年为例，对函数继续测试，将运行结果与提供的svg进行对比，其它年份可将文件重新命名
-    render_world_map(gdpinfo, pygal_countries, year, "isp_gdp_world_name_1970.svg")
-
+    pygal_countries = pygal.maps.world.COUNTRIES   # 获得绘图库pygal国家代码字典，读取pygal.maps.world中国家代码信息（为字典格式），其中键为pygal中各国代码，值为对应的具体国名
     
+    isp_countries = []
+    for isp_country_code in gdp_csv :
+        isp_countries.append(gdp_csv[isp_country_code]["Country Name"])
 
-    
-
+    render_world_map(gdp_csv, pygal_countries, year, "isp_gdp_world_name_%s.svg"%(year))
 
 
 
 #程序测试和运行
 print("欢迎使用世行GDP数据可视化查询")
 print("----------------------")
-year=input("请输入需查询的具体年份（1960~2015）:")
+year=input("请输入需查询的具体年份（1960-2015）:")
 test_render_world_map(year)
+
+
